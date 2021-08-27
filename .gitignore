@@ -1,3 +1,5 @@
+# List of untracked files to ignore
+
 # Windows default autosave extension
 *.asv
 
@@ -32,3 +34,4 @@ octave-workspace
 
 # Matlab save files
 *.mat
+
