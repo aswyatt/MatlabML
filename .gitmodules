@@ -1,0 +1,3 @@
+[submodule "Artemis-lib-Matlab"]
+	path = Artemis-lib-Matlab
+	url = https://github.com/CentralLaserFacility/Artemis-lib-Matlab.git
