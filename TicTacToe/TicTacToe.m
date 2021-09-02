@@ -13,7 +13,7 @@ classdef TicTacToe
 	%	This class also provides a basic AI who will choose where to insert the
 	%	next counter
 	
-	properties(SetAccess=private)
+	properties%(SetAccess=private)
 		Grid(3,3) {mustBeInteger, mustBeInRange(Grid, -1, 1)} = zeros(3);
 		CurrentPlayer(1,1) {mustBeInteger, mustBeInRange(CurrentPlayer, 1, 2)} = 1;
 		IllegalMove(1,1) logical;
@@ -141,15 +141,15 @@ classdef TicTacToe
 			if ind<3
 				C = ind;
 				R = find(~obj.Grid(:, C), 1, "first");
-			elseif ind>3 && ind<6
+			elseif ind>3 && ind<=6
 				R = ind-3;
 				C = find(~obj.Grid(R, :), 1, "first");
 			elseif ind==7
 				R = find(~diag(obj.Grid), 1, "first");
 				C = R;
 			elseif ind==8
-				R = find(~diag(flip(obj.Grid)), 1, "first");
-				C = 3 - R;
+				C = find(~diag(flip(obj.Grid)), 1, "first");
+				R = 4 - C;
 			else
 				if ~obj.Grid(2,2)
 					R = 2;
@@ -161,7 +161,8 @@ classdef TicTacToe
 			end
 			
 			%	Insert counter
-			obj = obj.Insert(R, C);
+			fprintf("R: %d\nC: %d\n", R, C);
+% 			obj = obj.Insert(R, C);
 		end
 	end
 	
