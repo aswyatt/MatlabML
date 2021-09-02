@@ -161,8 +161,7 @@ classdef TicTacToe
 			end
 			
 			%	Insert counter
-			fprintf("R: %d\nC: %d\n", R, C);
-% 			obj = obj.Insert(R, C);
+			obj = obj.Insert(R, C);
 		end
 	end
 	
