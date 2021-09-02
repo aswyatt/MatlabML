@@ -94,7 +94,7 @@ classdef TicTacToe
 		%	====================================================================
 		%	Choose locations
 		%	====================================================================
-		function obj = Choose(obj)
+		function obj = Choose(obj, centre)
 			%	Check for draw
 			if obj.NumberOfTurns == 9
 				return
@@ -151,7 +151,7 @@ classdef TicTacToe
 				C = find(~diag(flip(obj.Grid)), 1, "first");
 				R = 4 - C;
 			else
-				if ~obj.Grid(2,2)
+				if exist("centre", "var") && centre && ~obj.Grid(2,2)
 					R = 2;
 					C = 2;
 				else
@@ -163,9 +163,13 @@ classdef TicTacToe
 			%	Insert counter
 			obj = obj.Insert(R, C);
 		end
+		
+		function S = GetState(obj)
+			S = sum(3.^(0:8).' .* mod(obj.Grid(:), 3)) + 1;
+		end
 	end
 	
-	methods (Access=private)
+	methods %(Access=private)
 		%	====================================================================
 		%	Calculate number of turns played
 		%	====================================================================
