@@ -13,10 +13,11 @@ classdef TicTacToe
 	%	This class also provides a basic AI who will choose where to insert the
 	%	next counter
 	
-	properties%(SetAccess=private)
+	properties (SetAccess=private)
 		Grid(3,3) {mustBeInteger, mustBeInRange(Grid, -1, 1)} = zeros(3);
 		CurrentPlayer(1,1) {mustBeInteger, mustBeInRange(CurrentPlayer, 1, 2)} = 1;
 		IllegalMove(1,1) logical;
+		
 	end
 	
 	methods
@@ -70,7 +71,7 @@ classdef TicTacToe
 				Result = [];
 			end
 		end
-				
+		
 		%	====================================================================
 		%	Insert counter into Row/Column
 		%	====================================================================
@@ -94,7 +95,7 @@ classdef TicTacToe
 		%	====================================================================
 		%	Choose locations
 		%	====================================================================
-		function obj = Choose(obj, centre)
+		function obj = Choose(obj, Algorithm, varargin)
 			%	Check for draw
 			if obj.NumberOfTurns == 9
 				return
@@ -108,9 +109,71 @@ classdef TicTacToe
 			
 			%	Check for occupancy values
 			N = obj.CalculateScores(true);
-			val = obj.GridValue;
 			
+			switch Algorithm
+				case "Bot"
+					[R, C] = obj.BotAlgorithm(S, N, varargin{:});
+					
+				otherwise
+					ind = find(~obj.Grid);
+					[R, C] = ind2sub([3 3], ind(randi(length(ind))));
+			end	
+			
+			%	Insert counter
+			obj = obj.Insert(R, C);
+		end
+		
+		function S = GetState(obj)
+			S = sum(3.^(0:8).' .* mod(obj.Grid(:), 3)) + 1;
+		end
+		
+		%	====================================================================
+		%	Calculate number of turns played
+		%	====================================================================
+		function N = NumberOfTurns(obj)
+			N = sum(abs(obj.Grid), "all");
+		end
+		
+		%	====================================================================
+		%	Calculate the scores for each column, row & diagonal
+		%	====================================================================
+		function Scores = CalculateScores(obj, opt)
+			G = obj.Grid;
+			
+			%	Calclulate occupancy instead of score
+			if nargin>1 && opt
+				G = abs(G);
+			end
+			%	Sum columns, then rows, then diagonals
+			Scores = [sum(G) sum(G, 2).' trace(G) trace(flip(G))];
+		end
+		
+		%	====================================================================
+		%	Return the value to insert into grid
+		%	====================================================================
+		function val = GridValue(obj)
+			%	Player 1 --> 1
+			%	Player 2 --> -1
+			val = 3 - 2*obj.CurrentPlayer;
+		end
+	end
+	
+	methods (Access=private)
+		
+		%	====================================================================
+		%	Change current player
+		%	====================================================================
+		function obj = ChangePlayer(obj)
+			%	Player 1 <--> Player 2
+			obj.CurrentPlayer = 3 - obj.CurrentPlayer;
+		end
+		
+		%	====================================================================
+		%	Bot Algorithm
+		%	====================================================================
+		function [R, C] = BotAlgorithm(obj, S, N, centre)
 			%	Set sign of scores for current player to positive
+			val = obj.GridValue;
 			S = S.*sign(val);
 			ind = [];
 			count = 0;
@@ -159,53 +222,6 @@ classdef TicTacToe
 					[R, C] = ind2sub([3 3], ind(randi(length(ind))));
 				end
 			end
-			
-			%	Insert counter
-			obj = obj.Insert(R, C);
-		end
-		
-		function S = GetState(obj)
-			S = sum(3.^(0:8).' .* mod(obj.Grid(:), 3)) + 1;
-		end
-	end
-	
-	methods %(Access=private)
-		%	====================================================================
-		%	Calculate number of turns played
-		%	====================================================================
-		function N = NumberOfTurns(obj)
-			N = sum(abs(obj.Grid), "all");
-		end
-		
-		%	====================================================================
-		%	Calculate the scores for each column, row & diagonal
-		%	====================================================================
-		function Scores = CalculateScores(obj, opt)
-			G = obj.Grid;
-			
-			%	Calclulate occupancy instead of score
-			if nargin>1 && opt
-				G = abs(G);
-			end
-			%	Sum columns, then rows, then diagonals
-			Scores = [sum(G) sum(G, 2).' trace(G) trace(flip(G))];
-		end
-		
-		%	====================================================================
-		%	Change current player
-		%	====================================================================
-		function obj = ChangePlayer(obj)
-			%	Player 1 <--> Player 2
-			obj.CurrentPlayer = 3 - obj.CurrentPlayer;
-		end
-		
-		%	====================================================================
-		%	Return the value to insert into grid
-		%	====================================================================
-		function val = GridValue(obj)
-			%	Player 1 --> 1
-			%	Player 2 --> -1
-			val = 3 - 2*obj.CurrentPlayer;
 		end
 	end
 end
