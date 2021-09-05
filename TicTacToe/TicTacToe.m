@@ -113,11 +113,9 @@ classdef TicTacToe
 			switch Algorithm
 				case "Bot"
 					[R, C] = obj.BotAlgorithm(S, N, varargin{:});
-					
 				otherwise
-					ind = find(~obj.Grid);
-					[R, C] = ind2sub([3 3], ind(randi(length(ind))));
-			end	
+					[R, C] = obj.RandomAlgorithm;
+			end
 			
 			%	Insert counter
 			obj = obj.Insert(R, C);
@@ -166,6 +164,11 @@ classdef TicTacToe
 		function obj = ChangePlayer(obj)
 			%	Player 1 <--> Player 2
 			obj.CurrentPlayer = 3 - obj.CurrentPlayer;
+		end
+		
+		function [R, C] = RandomAlgorithm(obj)
+			ind = find(~obj.Grid);
+			[R, C] = ind2sub([3 3], ind(randi(length(ind))));
 		end
 		
 		%	====================================================================
@@ -218,8 +221,7 @@ classdef TicTacToe
 					R = 2;
 					C = 2;
 				else
-					ind = find(~obj.Grid);
-					[R, C] = ind2sub([3 3], ind(randi(length(ind))));
+					[R, C] = obj.RandomAlgorithm;
 				end
 			end
 		end
