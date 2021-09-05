@@ -1,5 +1,5 @@
-classdef TicTacToe
-	%TICTACTOE Simulation of Tic-Tac-Toe game
+classdef TicTacToe < handle
+	%TICTACTOE (handle) Simulation of Tic-Tac-Toe game
 	%   This class simulates a Tic-Tac-Toe game as a 3x3 grid.
 	%
 	%	Players take turns to specify the row & column of the grid to insert
@@ -18,7 +18,7 @@ classdef TicTacToe
 		CurrentPlayer(1,1) {mustBeInteger, mustBeInRange(CurrentPlayer, 1, 2)} = 1;
 		IllegalMove(1,1) logical;
 		
-	end
+	end %	properties (SetAccess=private)
 	
 	methods
 		
@@ -26,17 +26,17 @@ classdef TicTacToe
 		%	Object Constructor
 		%	====================================================================
 		function obj = TicTacToe
-			obj = obj.Reset;
-		end
+			obj.Reset;
+		end %	function TicTacToe
 		
 		%	====================================================================
 		%	Reset object
 		%	====================================================================
-		function obj = Reset(obj)
+		function Reset(obj)
 			obj.Grid = zeros(3);
 			obj.CurrentPlayer = 1;
 			obj.IllegalMove = false;
-		end
+		end %	function Reset
 		
 		%	====================================================================
 		%	Check for winner and winning column/row/diagonal
@@ -70,12 +70,12 @@ classdef TicTacToe
 				Winner = 0;
 				Result = [];
 			end
-		end
+		end %	function CheckWinner
 		
 		%	====================================================================
 		%	Insert counter into Row/Column
 		%	====================================================================
-		function obj = Insert(obj, Row, Col)
+		function Insert(obj, Row, Col)
 			arguments
 				obj(1,1) TicTacToe
 				Row(1,1) {mustBeInteger, mustBeInRange(Row, 1, 3)}
@@ -86,16 +86,16 @@ classdef TicTacToe
 			%	Check move is valid
 			if ~obj.Grid(Row, Col)
 				obj.Grid(Row, Col) = obj.GridValue;
-				obj = obj.ChangePlayer;
+				obj.ChangePlayer;
 			else
 				obj.IllegalMove = true;
 			end
-		end
+		end %	function Insert
 		
 		%	====================================================================
-		%	Choose locations
+		%	Choose location
 		%	====================================================================
-		function obj = Choose(obj, Algorithm, varargin)
+		function Choose(obj, Algorithm, varargin)
 			%	Check for draw
 			if obj.NumberOfTurns == 9
 				return
@@ -113,17 +113,22 @@ classdef TicTacToe
 			switch Algorithm
 				case "Bot"
 					[R, C] = obj.BotAlgorithm(S, N, varargin{:});
+				case "Agent"
+					[R, C] = obj.AgentAlgorithm(varargin{1});
 				otherwise
 					[R, C] = obj.RandomAlgorithm;
 			end
 			
 			%	Insert counter
-			obj = obj.Insert(R, C);
-		end
+			obj.Insert(R, C);
+		end %	function Choose
 		
+		%	====================================================================
+		%	Get State
+		%	====================================================================
 		function S = GetState(obj)
 			S = sum(3.^(0:8).' .* mod(obj.Grid(:), 3)) + 1;
-		end
+		end %	function GetState
 		
 		%	====================================================================
 		%	Calculate number of turns played
@@ -144,7 +149,7 @@ classdef TicTacToe
 			end
 			%	Sum columns, then rows, then diagonals
 			Scores = [sum(G) sum(G, 2).' trace(G) trace(flip(G))];
-		end
+		end %	function CalculateScores
 		
 		%	====================================================================
 		%	Return the value to insert into grid
@@ -153,23 +158,36 @@ classdef TicTacToe
 			%	Player 1 --> 1
 			%	Player 2 --> -1
 			val = 3 - 2*obj.CurrentPlayer;
-		end
-	end
+		end %	function GridValue
+	end %	methods
 	
 	methods (Access=private)
 		
 		%	====================================================================
 		%	Change current player
 		%	====================================================================
-		function obj = ChangePlayer(obj)
+		function ChangePlayer(obj)
 			%	Player 1 <--> Player 2
 			obj.CurrentPlayer = 3 - obj.CurrentPlayer;
-		end
+		end %	function ChangePlayer
+
+		%	====================================================================
+		%	Agent Algorithm
+		%	====================================================================
+		function [R, C] = AgentAlgorithm(obj, Agent)
+			[R, C] = ind2sub([3 3], getAction(Agent, obj.GetState));
+			if obj.Grid(R, C)
+				[R, C] = obj.RandomAlgorithm;
+			end
+		end %	function AgentAlgorithm
 		
+		%	====================================================================
+		%	Random Algorithm
+		%	====================================================================
 		function [R, C] = RandomAlgorithm(obj)
 			ind = find(~obj.Grid);
 			[R, C] = ind2sub([3 3], ind(randi(length(ind))));
-		end
+		end %	function RandomAlgorithm
 		
 		%	====================================================================
 		%	Bot Algorithm
@@ -200,8 +218,8 @@ classdef TicTacToe
 					case 4
 						%	Choose centre or random
 						ind = 9;
-				end
-			end
+				end %	switch count ...
+			end %	while ...
 			
 			%	Convert optimal index to grid position
 			if ind<3
@@ -223,8 +241,8 @@ classdef TicTacToe
 				else
 					[R, C] = obj.RandomAlgorithm;
 				end
-			end
-		end
-	end
-end
+			end %	if ...
+		end %	function BotAlgorithm
+	end %	 methods (Access=private)
+end %	classdef
 
