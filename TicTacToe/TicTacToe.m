@@ -98,12 +98,14 @@ classdef TicTacToe < handle
 		function Choose(obj, Algorithm, varargin)
 			%	Check for draw
 			if obj.NumberOfTurns == 9
+% 				fprintf("Complete\n");
 				return
 			end
 			
 			%	Calculate scores & check for winner
 			S = obj.CalculateScores;
 			if any(abs(S)==3)
+% 				fprintf("Winner");
 				return
 			end
 			
@@ -159,6 +161,18 @@ classdef TicTacToe < handle
 			%	Player 2 --> -1
 			val = 3 - 2*obj.CurrentPlayer;
 		end %	function GridValue
+		
+		%	====================================================================
+		%	Set the grid (need to validate)
+		%	====================================================================
+		function SetGrid(obj, G)
+			obj.Grid = G;
+			if sum(G==1, "all") == sum(G==-1, "all")
+				obj.CurrentPlayer = 1;
+			else
+				obj.CurrentPlayer = 2;
+			end
+		end
 	end %	methods
 	
 	methods (Access=private)
@@ -185,8 +199,12 @@ classdef TicTacToe < handle
 		%	Random Algorithm
 		%	====================================================================
 		function [R, C] = RandomAlgorithm(obj)
-			ind = find(~obj.Grid);
-			[R, C] = ind2sub([3 3], ind(randi(length(ind))));
+			ind = find(~obj.Grid(:));
+			%	Account for quirk of randsample syntax
+			if length(ind)>1
+				ind = randsample(ind, 1);
+			end
+			[R, C] = ind2sub([3 3], ind);
 		end %	function RandomAlgorithm
 		
 		%	====================================================================
@@ -200,7 +218,7 @@ classdef TicTacToe < handle
 			count = 0;
 			
 			%	Function to determine optimal index
-			FIND = @(n) find(S==n & N<3, 1, "first");
+			FIND = @(n) find(S==n & N<3);
 			
 			%	Find optimum column/row/diag to insert next
 			while isempty(ind)
@@ -221,24 +239,34 @@ classdef TicTacToe < handle
 				end %	switch count ...
 			end %	while ...
 			
+			if length(ind)>1
+				ind = randsample(ind, 1);
+			end
+			
 			%	Convert optimal index to grid position
-			if ind<3
+			if ind<=3
+% 				fprintf("Column\n");
 				C = ind;
 				R = find(~obj.Grid(:, C), 1, "first");
 			elseif ind>3 && ind<=6
+% 				fprintf("Row\n");
 				R = ind-3;
 				C = find(~obj.Grid(R, :), 1, "first");
 			elseif ind==7
+% 				fprintf("Diagonal\n");
 				R = find(~diag(obj.Grid), 1, "first");
 				C = R;
 			elseif ind==8
+% 				fprintf("Anti-diagonal\n");
 				C = find(~diag(flip(obj.Grid)), 1, "first");
 				R = 4 - C;
 			else
 				if exist("centre", "var") && centre && ~obj.Grid(2,2)
+% 					fprintf("Centre\n");
 					R = 2;
 					C = 2;
 				else
+% 					fprintf("Random\n");
 					[R, C] = obj.RandomAlgorithm;
 				end
 			end %	if ...
