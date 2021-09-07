@@ -105,16 +105,12 @@ classdef TicTacToe < handle
 			%	Calculate scores & check for winner
 			S = obj.CalculateScores;
 			if any(abs(S)==3)
-% 				fprintf("Winner");
 				return
 			end
 			
-			%	Check for occupancy values
-			N = obj.CalculateScores(true);
-			
 			switch Algorithm
 				case "Bot"
-					[R, C] = obj.BotAlgorithm(S, N, varargin{:});
+					[R, C] = obj.BotAlgorithm(varargin{:});
 				case "Agent"
 					[R, C] = obj.AgentAlgorithm(varargin{1});
 				otherwise
@@ -191,7 +187,7 @@ classdef TicTacToe < handle
 		function [R, C] = AgentAlgorithm(obj, Agent)
 			[R, C] = ind2sub([3 3], getAction(Agent, obj.GetState));
 			if obj.Grid(R, C)
-				[R, C] = obj.RandomAlgorithm;
+				[R, C] = obj.BotAlgorithm(true);
 			end
 		end %	function AgentAlgorithm
 		
@@ -210,7 +206,10 @@ classdef TicTacToe < handle
 		%	====================================================================
 		%	Bot Algorithm
 		%	====================================================================
-		function [R, C] = BotAlgorithm(obj, S, N, centre)
+		function [R, C] = BotAlgorithm(obj, centre)
+			S = obj.CalculateScores;
+			N = obj.CalculateScores(true);
+					
 			%	Set sign of scores for current player to positive
 			val = obj.GridValue;
 			S = S.*sign(val);
