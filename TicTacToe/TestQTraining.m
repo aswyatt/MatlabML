@@ -5,6 +5,14 @@ Proj = currentProject;
 cd(fullfile(Proj.RootFolder, "TicTacToe"));
 rng(0);
 
+PARAM = struct( ...
+	"Var", "Learning Rate", ...
+	"LR", 1, ...
+	"Epsilon", .1, ...
+	"DR", 1e-3);
+% PARAM = "Epsilon";
+% PARAM = "Decay Rate";
+
 %	Create environment
 NumObs = 3^9;		%	Number of observation states (Pl 1, Pl 2 or empty in each grid position)
 NumAct = 9;			%	Number of actions (3x3 grid)
@@ -23,6 +31,15 @@ Epsilon = (1:Neps).'*Epsmax/Neps;
 NDR = 4;
 DR = logspace(-NDR, -1, NDR);
 
+switch PARAM.Var
+	case "Learning Rate"
+		N = NLR;
+	case "Epsilon"
+		N = Neps;
+	case "Decay Rate"
+		N = NDR;
+end
+
 OI = rlFiniteSetSpec(1:NumObs);		%	Observation Info
 OI.Name = "Tic-Tac-Toe Observation States";
 
@@ -34,56 +51,56 @@ env = rlFunctionEnv(OI, AI, @Step, @()Reset);
 %	Create QTable
 %		Note that not all states are possible (e.g. all one counter or some multiple
 %		3 in a row)
-qRepresentation = arrayfun(@(n) rlQValueRepresentation(...
-	rlTable(OI, AI), OI, AI), LR);
-for nLR=1:NLR
-	qRepresentation(nLR).Options.LearnRate = LR(nLR);
+
+qRepr = rlQValueRepresentation(rlTable(OI, AI), OI, AI);
+if strcmp(PARAM.Var, "Learning Rate")
+	qRepr = repmat(qRepr, [NLR 1]);
+	for nLR=1:NLR
+		qRepr(nLR).Options.LearnRate = LR(nLR);
+	end
+else
+	qRepr.Options.LearnRate = PARAM.LR;
 end
 
 %	Create Agent Options
-qAgents = arrayfun(@(n) arrayfun(@(qRep) rlQAgent(qRep), qRepresentation), ...
-	1:Neps*NDR, "UniformOutput", false);
-qAgents = reshape(vertcat(qAgents{:}), NLR, Neps, NDR);
-for nLR=1:NLR
-	for neps=1:Neps
-		for nDR = 1:NDR
-			qAgents(nLR, neps, nDR).AgentOptions.EpsilonGreedyExploration.Epsilon ...
-				= Epsilon(neps);
-			qAgents(nLR, neps, nDR).AgentOptions.EpsilonGreedyExploration.EpsilonDecay ...
-				= DR(nDR);
-			qAgents(nLR, neps, nDR).AgentOptions.EpsilonGreedyExploration.EpsilonMin ...
-				= eps(0);
+AO = rlQAgentOptions;
+AO.EpsilonGreedyExploration.Epsilon = PARAM.Epsilon;
+AO.EpsilonGreedyExploration.EpsilonDecay = PARAM.DR;
+AO.EpsilonGreedyExploration.EpsilonMin = eps(0);
+if any(strcmp(PARAM.Var, ["Epsilon" "Decay Rate"]))
+	qAgents = arrayfun(@(n) rlQAgent(qRep, AO), (1:N).');
+	
+	if strcmp(PARAM.Var, "Epsilon")
+		for n=1:N
+			qAgents(n).AgentOptions.EpsilonGreedyExploration.Epsilon ...
+				= Epsilon(n);
+		end
+		for n=1:N
+			qAgents(n).AgentOptions.EpsilonGreedyExploration.EpsilonDecay ...
+				= DR(n);
 		end
 	end
+else
+	qAgents = arrayfun(@(qRep) rlQAgent(qRep, AO), qRepr);
 end
 
 %	Set training options
 trainOpts = rlTrainingOptions;
 trainOpts.MaxStepsPerEpisode = 10;
-trainOpts.MaxEpisodes= 10;
+trainOpts.MaxEpisodes= 1000;
 trainOpts.StopTrainingCriteria = "EpisodeCount";
 trainOpts.StopTrainingValue = trainOpts.MaxEpisodes;
 trainOpts.ScoreAveragingWindowLength = 10;
 trainOpts.Plots = "None";
 
 %% Train the agent
-multiWaitbar('Learning Rate', 'Reset', 'Color', 'g');
-for nLR = 1:NLR
-	multiWaitbar('Epsilon', 'Reset', 'Color', 'b');
-	for neps = 1:Neps
-		parfor nDR = 1:NDR
-			trainingStats(nLR, neps, nDR) = train(qAgents(nLR, neps, nDR), ...
-				env, trainOpts);
-		end
-		multiWaitbar('Epsilon', 'Increment', 1/Neps);
-	end
-	multiWaitbar('Learning Rate', 'Increment', 1/NLR);
+parfor n=1:N
+	trainingStats(n) = train(qAgents(n), env, trainOpts);
 end
-multiWaitbar('CloseAll');
 
 %% Compare the agents
 Na = 1+numel(qAgents);
-Ng = 10;
+Ng = 100;
 W = zeros(Na, Na, 3);
 
 obj = TicTacToe;
@@ -101,7 +118,7 @@ for na1=1:Na
 	
 	%	Loop through player 2 agents
 	multiWaitbar('Player 2', 'Reset', 'Color', 'k');
-	for na2=1:Na		
+	for na2=1:Na
 		%	Select agent for player 2
 		if na2<Na
 			alg2 = "Agent";
@@ -123,21 +140,33 @@ for na1=1:Na
 			
 			n = w + (w<0)*4;
 			W(na1, na2, n) = W(na1, na2, n) + 1;
-			if w<0
-				D(na1, na2) = D(na1, na2) + 1;
-			elseif w==1
-				W1(na1, na2) = W1(na1, na2) + 1;
-			else
-				W2(na1, na2) = W2(na1, na2) + 1;
-			end
 		end
 		multiWaitbar('Player 2', 'Increment', 1/Na);
 	end
-	multiWaitbar('Player 1', 'Increment', 1/Na);	
+	multiWaitbar('Player 1', 'Increment', 1/Na);
 end
 multiWaitbar('CloseAll');
 
-imagesc(W1);
+
+%%
+clf;
+tiledlayout(1, 3, "TileSpacing", "loose", "Padding", "compact");
+colormap(jet);
+for n=1:3
+	ax = nexttile;
+	imagesc(W(:, :, n)/2, "Parent", ax);
+	set(gca, "CLim", [0 50]);
+	if n<3
+		title("Winner = Plyr " + n);
+	else
+		title("Draw");
+	end
+	xlabel("Player 1");
+	ylabel("Player 2");
+end
+	h = colorbar("Location", "eastoutside");
+	h.Label.String = "Frequency [%]";
+
 %% Reset function
 % Used to generate initial state and logged signals (Data)
 function [InitState, Data] = Reset(varargin)
