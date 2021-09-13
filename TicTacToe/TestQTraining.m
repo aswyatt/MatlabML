@@ -6,9 +6,9 @@ cd(fullfile(Proj.RootFolder, "TicTacToe"));
 rng(0);
 
 PARAM = struct( ...
-	"Var", "Learning Rate", ...
-	"LR", 1, ...
-	"Epsilon", .1, ...
+	"Var", "Decay Rate", ...
+	"LR", .3, ...
+	"Epsilon", .3, ...
 	"DR", 1e-3);
 % PARAM = "Epsilon";
 % PARAM = "Decay Rate";
@@ -23,12 +23,17 @@ LRmax = 1;
 LR = (1:NLR).'*LRmax/NLR;
 
 %	Epsilon
-Neps = 20;
+% Epsmax = .5;
+% Epsmin = .08;
+% Epsilon = (Epsmin:.02:Epsmax).';
+% Epsilon = linspace(Epsmin, Epsmax, Neps);
+% Neps = length(Epsilon);
+Neps = 10;
 Epsmax = 1;
 Epsilon = (1:Neps).'*Epsmax/Neps;
 
 %	Decay Rate
-NDR = 4;
+NDR = 5;
 DR = logspace(-NDR, -1, NDR);
 
 switch PARAM.Var
@@ -68,26 +73,27 @@ AO.EpsilonGreedyExploration.Epsilon = PARAM.Epsilon;
 AO.EpsilonGreedyExploration.EpsilonDecay = PARAM.DR;
 AO.EpsilonGreedyExploration.EpsilonMin = eps(0);
 if any(strcmp(PARAM.Var, ["Epsilon" "Decay Rate"]))
-	qAgents = arrayfun(@(n) rlQAgent(qRep, AO), (1:N).');
+	qAgents = arrayfun(@(n) rlQAgent(qRepr, AO), (1:N).');
 	
 	if strcmp(PARAM.Var, "Epsilon")
 		for n=1:N
 			qAgents(n).AgentOptions.EpsilonGreedyExploration.Epsilon ...
 				= Epsilon(n);
 		end
+	else
 		for n=1:N
 			qAgents(n).AgentOptions.EpsilonGreedyExploration.EpsilonDecay ...
 				= DR(n);
 		end
 	end
 else
-	qAgents = arrayfun(@(qRep) rlQAgent(qRep, AO), qRepr);
+	qAgents = arrayfun(@(qRepr) rlQAgent(qRepr, AO), qRepr);
 end
 
 %	Set training options
 trainOpts = rlTrainingOptions;
 trainOpts.MaxStepsPerEpisode = 10;
-trainOpts.MaxEpisodes= 1000;
+trainOpts.MaxEpisodes= 10000;
 trainOpts.StopTrainingCriteria = "EpisodeCount";
 trainOpts.StopTrainingValue = trainOpts.MaxEpisodes;
 trainOpts.ScoreAveragingWindowLength = 10;
@@ -147,26 +153,46 @@ for na1=1:Na
 end
 multiWaitbar('CloseAll');
 
+W1 = sum(W(:, :, 2)).' *100/(Na*Ng);
+W2 = sum(W(:, :, 1), 2) * 100/(Na*Ng);
 
 %%
 clf;
-tiledlayout(1, 3, "TileSpacing", "loose", "Padding", "compact");
+tiledlayout("flow", "TileSpacing", "loose", "Padding", "compact");
 colormap(jet);
+CLIM = [floor(min(W, [], "all")) ceil(max(W, [], "all"))];
 for n=1:3
 	ax = nexttile;
-	imagesc(W(:, :, n)/2, "Parent", ax);
-	set(gca, "CLim", [0 50]);
+	bar3(W(:, :, n))
+% 	imagesc(W(:, :, n), "Parent", ax);
+% 	set(gca, "CLim", CLIM);
 	if n<3
 		title("Winner = Plyr " + n);
 	else
 		title("Draw");
 	end
-	xlabel("Player 1");
-	ylabel("Player 2");
+	xlabel("Player 2");
+	ylabel("Player 1");
 end
-	h = colorbar("Location", "eastoutside");
-	h.Label.String = "Frequency [%]";
+h = colorbar("Location", "eastoutside");
+h.Label.String = "Frequency [%]";
 
+nexttile;
+h = bar([W1 W2], "Stacked"); 
+axis tight; 
+grid on;
+title("Win percentage");
+ylabel("[%]");
+legend("Plyr 1", "Plyr 2", "Location", "Best");
+
+%% Save data
+if ~exist(".\data", "dir")
+	mkdir(".\data");
+end
+
+[wins, ind] = max((W1(1:end-1) + W2(1:end-1))/2);
+save(fullfile(".\data", datestr(now, "ddmmyy-HHMMSS") + "_Ind"+ind + "_" ...
+	+ round(wins) + "p.mat"));
 %% Reset function
 % Used to generate initial state and logged signals (Data)
 function [InitState, Data] = Reset(varargin)
